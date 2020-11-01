@@ -1,0 +1,84 @@
+CREATE OR REPLACE PROCEDURE P_DLSJZL_INSERTWPPQCJGB AS
+  /*
+   功能:加工未匹配清册查询表
+   创建时间: 20200725
+  */
+   rwuuid  varchar2(32);
+   v_begintime  date;
+   v_endtime   date;
+   RETURNCODE char(1);
+   RETURNMSG  varchar2(2000);
+BEGIN
+  RETURNCODE := '0';
+  RETURNMSG  := '执行失败';
+
+  v_begintime := sysdate;
+  select sys_guid() into rwuuid from dual;
+  
+  begin
+  insert into dl_wppqdjgb
+    (uuid,
+     rwuuid,
+     zgswj_dm,
+     ssdq,
+     ssx,
+     sjly,
+     dlhy_mc,
+     lev1,
+     lev2,
+     lev3,
+     lev4,
+     lev5,
+     lrr_dm,
+     lrrq,
+     xgr_dm,
+     xgrq,
+     yxbz
+     )
+     select  sys_guid,rwuuid,t.zgswj_dm,t.ssdq,t.ssx,t.sjly,t.dlhy_mc,
+     sum(nvl(t.lev1,0))as lev1,
+     sum(nvl(t.lev2,0))as lev2，
+     sum(nvl(t.lev3,0))as lev3,
+     sum(nvl(t.lev4,0))as lev4,
+     sum(nvl(t.lev5,0))as lev5,
+     '00000DLSJZL',SYSDATE,'00000DLSJZL',SYSDATE,'Y'
+     from
+     (
+     select a.sjly,b.dlhy_mc,a.zgswj_dm,a.ssdq,a.ssx,
+     (case when a.yjydgm='1' then count(distinct a.dbhh) end) lev1,
+     (case when a.yjydgm='2' then count(distinct a.dbhh) end) lev2,
+     (case when a.yjydgm='3' then count(distinct a.dbhh) end) lev3,
+     (case when a.yjydgm='4' then count(distinct a.dbhh) end) lev4,
+     (case when a.yjydgm='5' then count(distinct a.dbhh) end) lev5
+     from dl_dqrb a,dm_ydhlx b
+     where a.sjly='未匹配'
+     and a.ydhlx_dm=b.ydhlx_dm
+     group by a.sjly,b.dlhy_mc,a.yjydgm,a.zgswj_dm,a.ssdq,a.ssx
+     )t
+     group by t.sjly,t.dlhy_mc,t.zgswj_dm,t.ssdq,t.ssx;
+
+
+     RETURNCODE := '1';
+     RETURNMSG  := '成功';
+     commit;
+EXCEPTION
+  WHEN OTHERS THEN
+    RETURNCODE := '0';
+    RETURNMSG  := TO_CHAR(SQLCODE) || SUBSTR(SQLERRM, 1, 1800);
+    rollback;
+   END;
+  
+  BEGIN
+    v_endtime := sysdate;
+    insert into dl_rwrz
+    (rwuuid,
+     rwlx,
+     yxrq_q,
+     yxrq_z,
+     rwzt,
+     bz)
+     values (rwuuid,'1',v_begintime,v_endtime,RETURNCODE,RETURNMSG);
+     commit;
+  END;   
+
+END P_DLSJZL_INSERTWPPQCJGB;

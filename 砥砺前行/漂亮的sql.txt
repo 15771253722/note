@@ -1,0 +1,10 @@
+1.SELECT distinct(A.GSYWZJ),NVL(A.NSRSBH,A.SHXYDM) nsrsbh,A.NSRMC,A.ZGSWJ_DM,A.ZGSWSKFJ_DM,A.HY_DM,A.SCJYDZ,A.FDDBRXM sqr,A.FDDBRYDDH lxdh,A.SKSBCS,B.LRRQ pzhdrq,A.SJLY
+		 FROM LJMPT_NSRXX A left JOIN LJMPT_PZHDXX B on A.GSYWZJ=B.GSYWZJ
+		 WHERE A.PZHDBZ = 'Y'
+		 AND A.SJLY='1'
+		 AND A.ZGSWJ_DM LIKE ?
+		 AND (A.LRRQ between to_date(?,'yyyy-mm-dd hh24:mi:ss') and to_date(?,'yyyy-mm-dd hh24:mi:ss'))
+		 and not exists (select 1 from ljmpt_sksbfxbj c where c.gsywzj  = a.gsywzj ) order by B.LRRQ
+2.
+zhang.jian@css.com.cn
+Css@zhangjian123	 

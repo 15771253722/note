@@ -1,0 +1,857 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cixi.modan.api.domain.Juhuang">
+    <select id="Juhuang_checkUser" resultType="map">
+        SELECT
+            id,
+            username,
+            nm,
+            password,
+            logo
+        FROM
+            juhuang_user
+        WHERE
+            username=#{username}
+            And valid='1'
+    </select>
+
+    <insert id="Juhuang_Category_save" parameterType="Category" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO product_category(
+            <if test="id != null and id != ''">id,</if>
+            nm,
+            cate,
+            img,
+            select_img,
+            unselect_img,
+            have,
+            sts,
+            order_by,
+            CREATE_DATE,
+            CREATOR,
+            valid
+		) values (
+		    <if test="id != null and id != ''">#{id},</if>
+            #{nm},
+            #{cate},
+            #{img},
+            #{select_img},
+            #{unselect_img},
+            #{have},
+            #{sts},
+            #{weight},
+            NOW(),
+            #{creator},
+            1
+        ) ON DUPLICATE KEY UPDATE
+            nm = #{nm},
+            cate = #{cate},
+            img = #{img},
+            select_img = #{select_img},
+            unselect_img = #{unselect_img},
+            have = #{have},
+            sts = #{sts},
+            order_by = #{weight},
+            UPDATE_DATE = now()
+	</insert>
+    <update id="Juhuang_Category_remove">
+        update product_category set valid='0', update_date=now() where id=#{id}
+    </update>
+
+    <select id="Juhuang_Category_List" resultType="map">
+        SELECT
+        pc.id,
+        pc.nm,
+        pc.img,
+        ifnull(pc.select_img,"") select_img,
+        ifnull(pc.unselect_img, "") unselect_img,
+        pc.cate,
+        pc.have,
+        pc.sts,
+        pc.order_by as weight,
+        pc.create_date,
+        pc.creator,
+        pc.update_date,
+        pc.updator,
+        pc.valid,
+        count( mud.id ) dvcsum,
+        count( DISTINCT mud.uid ) usersum
+        FROM
+        product_category pc
+        LEFT JOIN product_plist pp ON pp.cid = pc.id
+        AND pp.valid = '1'
+        LEFT JOIN mmb_userdevice mud ON mud.pid = pp.id
+        AND mud.`owner` = '1'
+        AND mud.valid = '1'
+        where
+        pc.valid='1'
+        <if test="nm!=null and nm!=''">
+            AND pc.nm like '%${nm}%'
+        </if>
+        <if test="sts!=null and sts!=''">
+            AND pc.sts=#{sts}
+        </if>
+        group by pc.id
+        order by pc.id DESC
+    </select>
+    <!--房间start-->
+    <sql id="room_param">
+        room.id,
+        room.limitelect,
+        room.timingid,
+        room.fid,
+        room.uid,
+        room.aid,
+        room.lv,
+        room.note,
+        room.nm,
+        room.order_by weight,
+        room.creator,
+        room.create_date,
+        room.updator,
+        room.update_date,
+        room.valid
+    </sql>
+    <select id="Juhuang_Room_info" resultType="map">
+        select
+        usr.nicknm,
+        usr.headpic,
+        agent.nm agentnm,
+        <include refid="room_param"/>
+        from mmb_user_room room
+        left join mmb_user usr on room.uid = usr.id and usr.valid='1'
+        left join juhuang_agent agent on room.aid= agent.id and agent.valid='1'
+        <where> room.valid='1'
+         and room.id=#{id}
+        </where>
+        order by room.id desc
+    </select>
+    <update id="Juhuang_Room_remove">
+        update mmb_user_room set valid='0', update_date=now() where id=#{id}
+    </update>
+    <select id="Juhuang_Room_list" resultType="map">
+        select
+        <include refid="room_param"/>
+        from mmb_user_room room
+        <where> room.valid='1'
+         <if test="fid != null and fid != ''">
+            and room.fid=#{fid}
+         </if>
+        </where>
+        order by room.id desc
+    </select>
+    <!--房间end-->
+    <!--用户start-->
+    <sql id="usr_param">
+        usr.`id`,
+        usr.`aid`,
+        usr.`phone`,
+        usr.`nm`,
+        usr.`headpic`,
+        usr.`nicknm`,
+        usr.`birthday`,
+        usr.`sex`,
+        usr.`otherin`,
+        usr.`orgid`,
+        usr.`regtime`,
+        usr.`logintime`,
+        usr.`mac`,
+        usr.`phnsys`,
+        usr.`phnip`,
+        usr.`shengcd`,
+        usr.`shengnm`,
+        usr.`shicd`,
+        usr.`shinm`,
+        usr.`qucd`,
+        usr.`qunm`,
+        usr.`roletype`,
+        usr.`order_by`,
+        usr.`creator`,
+        usr.`create_date`,
+        usr.`updator`,
+        usr.`update_date`,
+        usr.`valid`
+    </sql>
+    <select id="Juhuang_User_info" resultType="map">
+        select
+        agent.nm,
+        <include refid="usr_param"/>
+        from mmb_user usr
+        left join juhuang_agent agent on usr.aid=agent.id and agent.valid='1'
+        <where> usr.valid='1'
+            and usr.id=#{id}
+        </where>
+        order by usr.id desc
+    </select>
+    <update id="Juhuang_User_remove">
+        update mmb_user set valid='0', update_date=now() where id=#{id}
+    </update>
+    <select id="Juhuang_getUserExceptAgentDeviceList" resultType="map">
+        select
+            mu.nm uname,
+            mu.phone,
+            mu.idcard,
+            '取暖器' pcnm,
+            bde.city,
+            pp.nm pnm,
+            bd.isonline,
+            bde.errflag,
+            bd.mac,
+            mu.nicknm,
+            jip.id installerid,
+            jip.`name` AS installer,
+            jip.create_date AS installtime,
+            substr(ha.mergername,4) as installarea,
+            mud.address,
+             <include refid="mud_param"/>
+        from mmb_userdevice mud
+        left join base_device_ext bde on bde.did = mud.did
+        left join product_plist pp on pp.id = mud.pid and pp.valid='1'
+        left join base_device bd on bd.did = mud.did
+        left join mmb_user mu on mud.uid=mu.id and mu.valid='1'
+        left join juhuang_install_person jip on mud.installerid = jip.id and jip.valid='1'
+        left join helper_area ha on mud.areaid = ha.id
+        where mu.aid = 0
+        and mud.`owner`='1'
+        and mud.valid='1'
+        <if test="mac != null and mac != ''">
+            and bd.mac like "%${mac}%"
+        </if>
+        <if test="did != null and did != ''">
+            and bd.did like "%${did}%"
+        </if>
+        <if test="dvcnm != null and dvcnm != ''">
+            and mud.dvcnm like "%${dvcnm}%"
+        </if>
+        <if test="pnm != null and pnm != ''">
+            and pp.nm like "%${pnm}%"
+        </if>
+        <if test="isonline != null and isonline != ''">
+            and bd.isonline = #{isonline}
+        </if>
+        <if test="errflag != null and errflag != ''">
+            and bde.errflag = #{errflag}
+        </if>
+        order by mud.id
+    </select>
+    <select id="Juhuang_User_list" resultType="map">
+        select
+        agent.nm agentnm,
+        group_concat(distinct mud.did) dids,
+        <include refid="usr_param"/>
+        from mmb_user usr
+        left join mmb_userdevice mud on mud.uid = usr.id and mud.owner = '1' and mud.valid = '1'
+        left join juhuang_agent agent on usr.aid=agent.id and agent.valid='1'
+        left join mmb_cpower_day mcd on mud.did = mcd.did and mcd.uid = usr.id and mcd.valid = '1'
+        <where>
+            usr.valid='1'
+            <if test="phone != null and phone != ''">
+                and usr.phone like "%${phone}%"
+            </if>
+            <if test="did != null and did != ''">
+                and mud.did like "%${did}%"
+            </if>
+            <if test="nicknm != null and nicknm != ''">
+                and usr.nicknm like "%${nicknm}%"
+            </if>
+            <if test="phnsys != null and phnsys != ''">
+                and usr.phnsys = #{phnsys}
+            </if>
+            and usr.aid = '0'
+        </where>
+        group by usr.id
+        order by usr.id desc
+    </select>
+    <!--用户end-->
+    <!--房间设备start-->
+    <sql id="mud_param">
+        mud.`id`,
+        mud.`uid`,
+        mud.`did`,
+        mud.`dvcnm`,
+        mud.`owner`,
+        mud.`isuse`,
+        mud.`forceflg`,
+        mud.`dvcgs`,
+        mud.`pid`,
+        mud.`validatecode`,
+        mud.`channelno`,
+        mud.`gateway`,
+        mud.`vdodid`,
+        mud.`tmallflag`,
+        mud.`tmallplace`,
+        mud.`ownuid`,
+        mud.`grantdate`,
+        mud.`appleinfo`,
+        mud.`memo`,
+        mud.`order_by`,
+        mud.`creator`,
+        mud.`create_date`,
+        mud.`updator`,
+        mud.`update_date`,
+        mud.`valid`
+    </sql>
+    <sql id="roomdev_param">
+        roomdev.`fid`,
+        roomdev.`did`,
+        roomdev.`order_by`,
+        roomdev.`creator`,
+        roomdev.`create_date`,
+        roomdev.`updator`,
+        roomdev.`update_date`,
+        roomdev.`valid`
+    </sql>
+    <select id="Juhuang_Room_Device_info" resultType="map">
+        select
+        agent.nm,
+        usr.nicknm,
+        usr.headpic,
+        usr.phone,
+        <include refid="mud_param"/>
+        from mmb_userdevice mud
+        left join mmb_user usr on mud.uid=usr.id and usr.valid='1'
+        left join juhuang_agent agent on usr.aid= agent.id and agent.valid='1'
+        <where>
+            mud.id=#{id}
+            and mud.valid='1'
+        </where>
+        group by mud.id
+        order by mud.id desc
+    </select>
+    <select id="Juhuang_User_Device_info" resultType="map">
+        select
+        usr.nm uname,
+        usr.phone,
+        usr.idcard,
+        pp.nm pnm,
+        pc.nm catenm,
+        bd.mac,
+        bd.ip,
+        bde.city,
+        bd.isonline,
+        bde.errflag,
+        usr.nicknm,
+        usr.nm usrnm,
+        usr.headpic,
+        usr.phone,
+        dtft.nm timingnm,
+        dtft.id timingid,
+        bde.islimit,
+        jip.id installerid,
+        jip.`name` AS installer,
+        jip.create_date AS installtime,
+        substr(ha.mergername,4) as installarea,
+        mud.address,
+        <include refid="com.cixi.modan.api.domain.Juhuang.mud_param"/>
+        from mmb_userdevice mud
+        left join base_device bd on bd.did=mud.did and bd.valid='1'
+        left join base_device_ext bde on bd.did = bde.did
+        left join product_plist pp on pp.type = bd.type and pp.valid='1'
+        left join product_category pc on pp.cid=pc.id and pc.valid='1'
+        left join mmb_user usr on mud.uid=usr.id and usr.valid='1'
+        left join device_timing dt on dt.did=bd.did
+        left join device_timing_father dtf ON dtf.did = bd.did
+        left join device_timing_father_template dtft on dtf.tid = dtft.id
+        left join juhuang_install_person jip on mud.installerid = jip.id and jip.valid='1'
+        left join helper_area ha on mud.areaid = ha.id
+        <where>
+            mud.did=#{did}
+            and mud.owner = '1'
+            and mud.valid='1'
+            <if test="mac != null and mac != ''">
+                and bd.mac like '%${mac}%'
+            </if>
+            <if test="dvcnm != null and dvcnm != ''">
+                and mud.dvcnm like '%${dvcnm}%'
+            </if>
+            <if test="pnm != null and pnm != ''">
+                and pp.nm like '%${pnm}%'
+            </if>
+            <if test="isonline != null and isonline != ''">
+                and bd.isonline = #{isonline}
+            </if>
+            <if test="errflag != null and errflag != ''">
+                and bde.errflag = #{errflag}
+            </if>
+        </where>
+        group by mud.id
+        order by mud.id desc
+    </select>
+    <update id="Juhuang_Room_Device_remove">
+        update mmb_userdevice set valid='0', update_date=now() where id=#{id} and aid=#{agentid}
+    </update>
+    <select id="Juhuang_Building_Device_list" resultType="map">
+        select
+        agent.nm,
+        usr.nicknm,
+        usr.headpic,
+        usr.phone,
+        <include refid="mud_param"/>
+        from mmb_userdevice mud
+        left join mmb_user usr on mud.uid=usr.id and usr.valid='1'
+        left join juhuang_agent agent on usr.aid= agent.id and agent.valid='1'
+        left join mmb_user_room_device roomdev on roomdev.did=mud.did and roomdev.valid='1'
+        left join mmb_user_room room on roomdev.bid=room.id and roomdev.valid='1'
+        <where>
+            mud.valid='1'
+        </where>
+        group by mud.id
+        order by mud.id desc
+    </select>
+    <select id="Juhuang_Floor_Device_list" resultType="map">
+        select
+        agent.nm,
+        usr.nicknm,
+        usr.headpic,
+        usr.phone,
+        <include refid="mud_param"/>
+        from mmb_userdevice mud
+        left join mmb_user usr on mud.uid=usr.id and usr.valid='1'
+        left join juhuang_agent agent on usr.aid= agent.id and agent.valid='1'
+        left join mmb_user_room_device roomdev on roomdev.did=mud.did and roomdev.valid='1'
+        left join mmb_user_room room on roomdev.fid=room.id and roomdev.valid='1'
+        <where>
+            mud.valid='1'
+        </where>
+        group by mud.id
+        order by mud.id desc
+    </select>
+    <select id="Juhuang_Room_Device_list" resultType="map">
+        select
+        agent.nm,
+        usr.nicknm,
+        usr.headpic,
+        usr.phone,
+        <include refid="mud_param"/>
+        from mmb_userdevice mud
+        left join mmb_user usr on mud.uid=usr.id and usr.valid='1'
+        left join juhuang_agent agent on usr.aid= agent.id and agent.valid='1'
+        left join mmb_user_room_device roomdev on roomdev.did=mud.did and roomdev.valid='1'
+        left join mmb_user_room room on roomdev.rid=room.id and roomdev.valid='1'
+        <where>
+            mud.valid='1'
+        </where>
+        group by mud.id
+        order by mud.id desc
+    </select>
+
+    <select id="Juhuang_Statistics_agent_sum" resultType="map">
+        select
+            count(agent.id) total
+        from juhuang_agent agent
+        where agent.valid='1'
+    </select>
+    <select id="Juhuang_Statistics_user_sum" resultType="map">
+        select
+            count(usr.id) total
+        from mmb_user usr
+        where usr.valid='1'
+    </select>
+
+    <select id="Juhuang_Statistics_device_sum" resultType="map">
+        select
+            count(DISTINCT mud.id) total
+        from mmb_userdevice mud
+        left join mmb_user mu on mud.uid=mu.id
+        where mud.valid='1'
+            and mud.owner = '1'
+            and mu.aid='0'
+    </select>
+
+    <select id="Juhuang_Statistics_product_sum" resultType="map">
+        select
+            count(pp.id) total
+        from product_plist pp
+        where pp.valid='1'
+    </select>
+    <select id="Juhuang_Statistics_device_province_total" resultType="map">
+        SELECT
+           count(mud.id) value,
+           REPLACE ( bde.province, substring(bde.province, locate('省', bde.province) + locate('市', bde.province)), "" ) name
+        FROM
+             mmb_userdevice mud
+             left join base_device_ext bde on bde.did = mud.did
+             left join base_device bd on mud.did=bd.did
+             left join mmb_user mu on mud.uid=mu.id
+        where bd.valid='1'
+        and mud.owner='1'
+        and mud.valid='1'
+        and mu.aid ='0'
+        GROUP BY bde.province
+    </select>
+    <!--房间设备end-->
+
+
+    <select id="Juhuang_Power_fee_rule_info" resultType="map">
+        select
+        <include refid="com.cixi.modan.api.domain.JuhuangAgent.power_fee_rule_param"/>
+        from device_power_feerule feerule
+        <where>feerule.uid=#{uid}
+            and feerule.valid='1'
+        </where>
+    </select>
+
+    <select id="Juhuang_getShengInfo" resultType="map">
+        SELECT
+            id,
+            nm,
+            phone,
+            create_date,
+            idcard,
+            concat(shengnm,"-",shinm,"-",qunm,"-",address) as address
+        FROM
+            mmb_user
+        WHERE
+            areaid = #{areaid}
+            and valid = 1
+    </select>
+
+    <insert id="Juhuang_updateGOVInfo" parameterType="map">
+        insert into gov_user(
+        <if test="id != null and id != ''">id,</if>
+        name,
+        <if test="phone != null and phone != ''">phone,</if>
+        <if test="passwd != null and passwd != ''">passwd,</if>
+        address,
+        visibleid,
+        areach,
+        create_date,
+        valid,
+        remarks
+        )
+        values (
+        <if test="id != null and id != ''">#{id},</if>
+        #{name},
+        <if test="phone != null and phone != ''">#{phone},</if>
+        <if test="passwd != null and passwd != ''">#{passwd},</if>
+        #{address},
+        #{visibleid},
+        #{areach},
+        now(),
+        1,
+        #{remarks}
+        )
+        on duplicate key update
+        name=#{name},
+        <if test="phone != null and phone != ''">phone=#{phone},</if>
+        <if test="passwd != null and passwd != ''">passwd=#{passwd},</if>
+        address=#{address},
+        visibleid=#{visibleid},
+        areach=#{areach},
+        update_date=now(),
+        valid=1,
+        remarks=#{remarks}
+    </insert>
+
+    <update id="Juhuang_delGOVInfo" parameterType="map">
+        UPDATE gov_user
+        SET valid = 0
+        WHERE
+	      id = #{id}
+    </update>
+
+    <select id="Juhuang_findGOVInfo" resultType="map">
+        SELECT
+            id,
+            name,
+            phone,
+            address,
+            visibleid,
+            areach,
+            remarks
+        FROM
+            gov_user
+        WHERE
+            id = #{id}
+        and valid = 1
+    </select>
+
+    <select id="Juhuang_pageGOVInfo" resultType="map">
+        SELECT
+            gu.id,
+            gu.name,
+            gu.phone,
+            gu.address,
+            gu.visibleid,
+            gu.areach,
+            gu.remarks,
+            substr( ha.`mergername`, 4 ) visibleArea,
+            gu.create_date,
+            gu.update_date
+        FROM
+            gov_user gu
+            LEFT JOIN helper_area ha ON gu.visibleid = ha.id
+        where
+            gu.valid = 1
+            <if test="id != null and id != ''">
+                and gu.id = #{id}
+            </if>
+            <if test="name != null and name != ''">
+                and gu.name like "%"#{name}"%"
+            </if>
+            <if test="phone != null and phone != ''">
+                and gu.phone like "%"#{phone}"%"
+            </if>
+
+        ORDER BY
+            gu.create_date DESC
+    </select>
+
+    <select id="Juhuang_checkGOVUser" resultType="map">
+        SELECT
+            id,
+            phone,
+            name,
+            passwd
+        FROM
+            gov_user
+        WHERE
+            phone=#{username}
+            And valid='1'
+    </select>
+
+    <select id="Juhuang_pageInstaller" resultType="map">
+        SELECT
+            jip.id,
+            jip.`name`,
+            jip.address,
+            jip.phone,
+            jip.idcard,
+            jip.areaid,
+            ja.nm as agentname,
+            jip.agent_id as agentid,
+            jip.create_date,
+            jip.sex
+        FROM
+            juhuang_agent ja,
+            juhuang_install_person jip
+        WHERE
+            jip.agent_id = ja.id
+            <if test="id != null and id != ''">
+                and jip.id = #{id}
+            </if>
+            <if test="name != null and name != ''">
+                and jip.name like "%"#{name}"%"
+            </if>
+            <if test="phone != null and phone != ''">
+                and jip.phone like "%"#{phone}"%"
+            </if>
+            <if test="idcard != null and idcard != ''">
+                and jip.idcard like "%"#{idcard}"%"
+            </if>
+            <if test="agentid != null and agentid != ''">
+                and jip.agent_id = #{agentid}
+            </if>
+            and jip.valid = 1
+        order by jip.create_date desc
+    </select>
+
+    <select id="Juhuang_getGOVUserExceptAgentDeviceList" resultType="map">
+        select
+        mu.nm uname,
+        mu.phone,
+        mu.idcard,
+        '取暖器' pcnm,
+        bde.city,
+        pp.nm pnm,
+        bd.isonline,
+        bde.errflag,
+        bd.mac,
+        mu.nicknm,
+        jip.id installerid,
+        jip.`name` AS installer,
+        jip.create_date AS installtime,
+        substr(ha.mergername,4) as installarea,
+        mud.address,
+        <include refid="mud_param"/>
+        from mmb_userdevice mud
+        left join base_device_ext bde on bde.did = mud.did
+        left join product_plist pp on pp.id = mud.pid and pp.valid='1'
+        left join base_device bd on bd.did = mud.did
+        left join mmb_user mu on mud.uid=mu.id and mu.valid='1'
+        left join juhuang_install_person jip on mud.installerid = jip.id and jip.valid='1'
+        left join gov_user gu on mud.areaid = gu.visibleid  and gu.valid='1'
+        left join helper_area ha on mud.areaid = ha.id
+        where mu.aid = 0
+        and mud.`owner`='1'
+        and mud.valid='1'
+        and gu.visibleid=#{visibleid}
+        <if test="mac != null and mac != ''">
+            and bd.mac like "%${mac}%"
+        </if>
+        <if test="did != null and did != ''">
+            and bd.did like "%${did}%"
+        </if>
+        <if test="dvcnm != null and dvcnm != ''">
+            and mud.dvcnm like "%${dvcnm}%"
+        </if>
+        <if test="pnm != null and pnm != ''">
+            and pp.nm like "%${pnm}%"
+        </if>
+        <if test="isonline != null and isonline != ''">
+            and bd.isonline = #{isonline}
+        </if>
+        <if test="errflag != null and errflag != ''">
+            and bde.errflag = #{errflag}
+        </if>
+        order by mud.id
+    </select>
+
+    <select id="Juhuang_GOV_User_Device_info" resultType="map">
+        select
+        usr.nm uname,
+        usr.phone,
+        usr.idcard,
+        pp.nm pnm,
+        pc.nm catenm,
+        bd.mac,
+        bd.ip,
+        bde.city,
+        bd.isonline,
+        bde.errflag,
+        usr.nicknm,
+        usr.nm usrnm,
+        usr.headpic,
+        usr.phone,
+        dtft.nm timingnm,
+        dtft.id timingid,
+        bde.islimit,
+        jip.id installerid,
+        jip.`name` AS installer,
+        jip.create_date AS installtime,
+        substr(ha.mergername,4) as installarea,
+        mud.address,
+        <include refid="com.cixi.modan.api.domain.Juhuang.mud_param"/>
+        from mmb_userdevice mud
+        left join base_device bd on bd.did=mud.did and bd.valid='1'
+        left join base_device_ext bde on bd.did = bde.did
+        left join product_plist pp on pp.type = bd.type and pp.valid='1'
+        left join product_category pc on pp.cid=pc.id and pc.valid='1'
+        left join mmb_user usr on mud.uid=usr.id and usr.valid='1'
+        left join device_timing dt on dt.did=bd.did
+        left join device_timing_father dtf ON dtf.did = bd.did
+        left join device_timing_father_template dtft on dtf.tid = dtft.id
+        left join juhuang_install_person jip on mud.installerid = jip.id and jip.valid='1'
+        left join gov_user gu on mud.areaid = gu.visibleid  and gu.valid='1'
+        left join helper_area ha on mud.areaid = ha.id
+        <where>
+            mud.did=#{did}
+            and mud.owner = '1'
+            and mud.valid='1'
+            and gu.visibleid=#{visibleid}
+            <if test="mac != null and mac != ''">
+                and bd.mac like '%${mac}%'
+            </if>
+            <if test="dvcnm != null and dvcnm != ''">
+                and mud.dvcnm like '%${dvcnm}%'
+            </if>
+            <if test="pnm != null and pnm != ''">
+                and pp.nm like '%${pnm}%'
+            </if>
+            <if test="isonline != null and isonline != ''">
+                and bd.isonline = #{isonline}
+            </if>
+            <if test="errflag != null and errflag != ''">
+                and bde.errflag = #{errflag}
+            </if>
+        </where>
+        group by mud.id
+        order by mud.id desc
+    </select>
+    
+    <select id="Juhuang_agent_info" resultType="map">
+        SELECT
+            ja.nm agentname
+        FROM
+            juhuang_install_person jip
+            LEFT JOIN juhuang_agent ja ON jip.agent_id = ja.id
+        WHERE
+            jip.id = #{installerid};
+    </select>
+
+    <select id="Juhuang_New_User_list" resultType="map">
+        SELECT
+        usr.id,
+        usr.phone,
+        usr.nicknm,
+        usr.nm,
+        CONCAT( usr.shengnm, usr.shinm, usr.qunm, usr.address ) as addr,
+        usr.idcard,
+        usr.phnsys,
+        mud.did,
+        bd.mac
+        FROM
+        mmb_user usr
+        LEFT JOIN mmb_userdevice mud ON mud.uid = usr.id
+        AND mud.OWNER = '1'
+        AND mud.valid = '1',
+        base_device bd
+        <where>
+            usr.valid='1'
+            <if test="phone != null and phone != ''">
+                and usr.phone like "%${phone}%"
+            </if>
+            <if test="did != null and did != ''">
+                and mud.did like "%${did}%"
+            </if>
+            <if test="nicknm != null and nicknm != ''">
+                and usr.nicknm like "%${nicknm}%"
+            </if>
+            <if test="phnsys != null and phnsys != ''">
+                and usr.phnsys = #{phnsys}
+            </if>
+            <if test="id != null and id != ''">
+                and usr.id = #{id}
+            </if>
+            <if test="idcard != null and idcard != ''">
+                and usr.id like "%#{idcard}%"
+            </if>
+            and usr.aid = '0'
+        </where>
+        group by usr.id
+        order by usr.id desc
+    </select>
+
+    <select id="Juhuang_GOV_New_User_list" resultType="map">
+        SELECT
+        usr.id,
+        usr.phone,
+        usr.nicknm,
+        usr.nm,
+        CONCAT( usr.shengnm, usr.shinm, usr.qunm, usr.address ) as addr,
+        usr.idcard,
+        usr.phnsys,
+        mud.did,
+        bd.mac
+        FROM
+        mmb_user usr
+        LEFT JOIN mmb_userdevice mud ON mud.uid = usr.id
+        AND mud.OWNER = '1'
+        AND mud.valid = '1',
+        base_device bd
+        <where>
+            usr.valid='1'
+            <if test="phone != null and phone != ''">
+                and usr.phone like "%${phone}%"
+            </if>
+            <if test="did != null and did != ''">
+                and mud.did like "%${did}%"
+            </if>
+            <if test="nicknm != null and nicknm != ''">
+                and usr.nicknm like "%${nicknm}%"
+            </if>
+            <if test="phnsys != null and phnsys != ''">
+                and usr.phnsys = #{phnsys}
+            </if>
+            <if test="id != null and id != ''">
+                and usr.id = #{id}
+            </if>
+            <if test="idcard != null and idcard != ''">
+                and usr.id like "%#{idcard}%"
+            </if>
+            and usr.aid = '0'
+        </where>
+        group by usr.id
+        order by usr.id desc
+    </select>
+</mapper>
+
