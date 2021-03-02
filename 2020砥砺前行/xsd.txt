@@ -1,0 +1,14 @@
+C:\>cd d:
+D:\
+C:\>d:
+D:\>cd aaaa
+
+xjc TaxMLBw_YDBG_00003_Request.xsd -p abc.bean
+xjc TaxMLBw_YDBG_00003_Response.xsd -p ab.bean
+
+
+xjc TaxMLBw_YDBG_00005_Request.xsd -p abc.bean
+
+
+
+xjc TaxMLBw_YDBG_00005_Response.xsd -p ab.bean
